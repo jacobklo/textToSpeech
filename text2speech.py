@@ -1,8 +1,13 @@
 import os
+import sys
+import json
+from pathlib import Path
 from google.cloud import texttospeech_v1 as texttospeech
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'voice-341704-b002feed1205.json'
 
+
+sentenceFile = Path(sys.argv[1])
 
 # Instantiates a client
 client = texttospeech.TextToSpeechClient()
@@ -18,19 +23,23 @@ voice = texttospeech.VoiceSelectionParams(
 # Select the type of audio file you want returned
 audio_config = texttospeech.AudioConfig(
     audio_encoding=texttospeech.AudioEncoding.MP3
+    , speaking_rate=0.8
 )
 
 lines = []
 outputNames = []
-with open('sentences.txt') as f:
-  
-  for line in f: 
-    lines.append(line.rstrip('\n').replace(',',''))
+with open(sentenceFile) as f:
+  jsonData = json.load(f)
+
+  lines = jsonData
     
   for line in lines:
+    line = line.rstrip('\n').replace('.','').replace(',','').replace(':','').replace('?','').replace('-','').replace('\'','').replace('\"','')
     lineWordList = [x[0].upper() + x[1:] for x in line.split()]
     outputNames.append(''.join(lineWordList[0:6]))
 
+
+os.makedirs(sentenceFile.with_suffix('').name, exist_ok=True)
 
 for i in range(len(lines)):
   sentence = lines[i]
@@ -46,7 +55,7 @@ for i in range(len(lines)):
   )
 
   # The response's audio_content is binary.
-  filename = "output/" + outputNames[i] + ".mp3"
+  filename = sentenceFile.with_suffix('').name + '/' + outputNames[i] + ".mp3"
   with open(filename, "wb") as out:
     # Write the response to the output file.
     out.write(response.audio_content)
